@@ -1,5 +1,7 @@
 # QUIC Stream Groups
 
+<img src="nosuchthing.jpeg">
+
 This is the working area for the individual Internet-Draft, "QUIC Stream Groups".
 
 * [Editor's Copy](https://marten-seemann.github.io/draft-seemann-quic-stream-groups/#go.draft-seemann-quic-stream-groups.html)
