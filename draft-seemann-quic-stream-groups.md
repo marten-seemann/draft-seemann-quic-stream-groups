@@ -6,8 +6,8 @@ submissiontype: IETF
 category: std
 
 ipr: trust200902
-area: Transport
-workgroup: QUIC
+area: "Transport"
+workgroup: "QUIC"
 keyword: QUIC, flow control, stream groups
 
 stand_alone: yes
