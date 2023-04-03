@@ -28,10 +28,9 @@ informative:
 
 --- abstract
 
-QUIC ({{!RFC9000}}) defines a few different mechanism flow control mechanism:
-* Stream flow control
-* Connection-level flow control
-* Flow control for the number of (unidirectional / bidirectional) streams
+QUIC ({{!RFC9000}}) defines a few different mechanism flow control mechanisms:
+Stream flow control, connection-level flow control and flow control for the
+number of (unidirectional / bidirectional) streams
 
 This allows a single application running on of a QUIC connection to apply backpressure.
 
@@ -54,7 +53,7 @@ This extension adds another layer of flow control for data sent on streams, by
 adding a data limit per stream group. For the number of streams opened, this
 extension replaces the mechanism described in ({{!RFC9000}}).
 
-Logically, The flow control mechanisms of QUIC ({{!RFC9000}}) can be regarded
+Logically, the flow control mechanisms of QUIC ({{!RFC9000}}) can be regarded
 as the degenerate case of this extension: A connection that only has a single
 stream group.
 
@@ -68,25 +67,29 @@ Endpoints advertise their support of the extension described in this document by
 sending at least one of the following transport parameters (Section 7.4 of {{!RFC9000}}).
 
 initial_max_stream_group (0x2a4c1f8e9b6d2c01):
-  The initial maximum stream group is an integer value that contains the
+
+: The initial maximum stream group is an integer value that contains the
   initial value for the maximum stream group.
 
 initial_max_group_streams_bidi (0x2a4c1f8e9b6d2c02):
-  The initial maximum bidirectional streams group parameter is an integer value
+
+: The initial maximum bidirectional streams group parameter is an integer value
   that contains the initial maximum number of bidirectional streams the endpoint
   that receives this transport parameter is permitted to initiate in a new stream
   group. If this parameter is absent or zero, the peer cannot open bidirectional
   streams until a MAX_GROUP_STREAMS frame is sent.
 
 initial_max_group_streams_uni (0x2a4c1f8e9b6d2c03):
-  The initial maximum unidirectional streams group parameter is an integer value
+
+: The initial maximum unidirectional streams group parameter is an integer value
   that contains the initial maximum number of unidirectional streams the endpoint
   that receives this transport parameter is permitted to initiate in a new stream
   group. If this parameter is absent or zero, the peer cannot open unidirectional
   streams until a MAX_GROUP_STREAMS frame is sent.
 
 initial_max_group_data (0x2a4c1f8e9b6d2c04):
-  The initial maximum data parameter is an integer value that contains the
+
+: The initial maximum data parameter is an integer value that contains the
   initial value for the maximum amount of data that can be sent on a newly
   established stream group. This is equivalent to sending a MAX_GROUP_DATA
   frame for the stream group immediately after establishment of the stream group.
@@ -106,7 +109,7 @@ of type TRANSPORT_PARAMETER_ERROR.
 TODO: define which of these parameters need to be remembered for 0-RTT
 
 
-# Limiting the Number of STreams
+# Limiting the Number of Streams
 
 QUIC ({{!RFC9000}}) identifies a stream by one number, its stream ID. When
 using this extension, a stream is identified by the tuple of the stream group
