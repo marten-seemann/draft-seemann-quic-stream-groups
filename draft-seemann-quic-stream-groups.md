@@ -66,7 +66,7 @@ stream group.
 Endpoints advertise their support of the extension described in this document by
 sending at least one of the following transport parameters (Section 7.4 of {{!RFC9000}}).
 
-initial_max_stream_group (0x2a4c1f8e9b6d2c01):
+initial_max_stream_groups (0x2a4c1f8e9b6d2c01):
 
 : The initial maximum stream group is an integer value that contains the
   initial value for the maximum stream group.
@@ -123,7 +123,7 @@ IDs are integers, starting at 0 and are incremented by 1 for every new stream
 group.
 
 Initially, the number of stream groups is limited by the value provided in the
-initial_max_stream_group transport parameter. Receiving a MAX_STREAM_GROUP
+initial_max_stream_groups transport parameter. Receiving a MAX_STREAM_GROUP
 frame updates this value.
 
 Note that due to packet reordering, MAX_STREAM_GROUP frames might be received
