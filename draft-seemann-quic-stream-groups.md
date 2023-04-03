@@ -61,7 +61,13 @@ stream group.
 
 {::boilerplate bcp14-tagged}
 
-# Negotiating this extension
+# Using Stream Groups
+
+This extension doesn't prescribe any specific usage pattern for stream groups.
+Applicationsrunning on top of a QUIC connection might check the peer assigns
+streams to the correct stream groups, based on some application-defined logic.
+
+# Negotiating this Extension
 
 Endpoints advertise their support of the extension described in this document by
 sending at least one of the following transport parameters (Section 7.4 of {{!RFC9000}}).
