@@ -1,0 +1,353 @@
+
+
+
+
+QUIC                                                          M. Seemann
+Internet-Draft                                             Protocol Labs
+Intended status: Standards Track                            3 April 2023
+Expires: 5 October 2023
+
+
+                           QUIC Stream Groups
+                draft-seemann-quic-stream-groups-latest
+
+Abstract
+
+   QUIC ([RFC9000]) defines a few different mechanism flow control
+   mechanisms: Stream flow control, connection-level flow control and
+   flow control for the number of (unidirectional / bidirectional)
+   streams
+
+   This allows a single application running on of a QUIC connection to
+   apply backpressure.
+
+   However, when multiple independent applications share a single
+   underlying QUIC connection, these mechanisms are not sufficient to
+   prevent one resource-hungry application from consuming all the
+   resources (streams and / or connection-level flow control credit)
+   available on the connection, effectively starving the other
+   application.
+
+Discussion Venues
+
+   This note is to be removed before publishing as an RFC.
+
+   Discussion of this document takes place on the QUIC Working Group
+   mailing list (quic@ietf.org), which is archived at
+   https://mailarchive.ietf.org/arch/browse/quic/.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/marten-seemann/draft-seemann-quic-stream-groups.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 5 October 2023.
+
+Copyright Notice
+
+   Copyright (c) 2023 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Conventions and Definitions
+   3.  Using Stream Groups
+   4.  Negotiating this Extension
+   5.  Limiting the Number of Streams
+     5.1.  Opening a New Stream Group
+     5.2.  Opening New Streams
+   6.  Flow Control
+     6.1.  Sending and Receiving Stream Data
+   7.  Changes to Existing Frames
+     7.1.  STREAM frame
+     7.2.  RESET_STREAM frame
+     7.3.  STREAMS_BLOCKED frame
+   8.  New Frames
+     8.1.  MAX_STREAM_GROUP
+     8.2.  MAX_GROUP_DATA
+     8.3.  GROUP_DATA_BLOCKED
+     8.4.  STREAM_GROUP_BLOCKED
+   9.  Security Considerations
+   10. IANA Considerations
+   11. Normative References
+   Acknowledgments
+   Author's Address
+
+1.  Introduction
+
+   This document defines a QUIC extension that introduces the concept of
+   stream groups.  Unidirectional and bidirectional streams are added to
+   different stream groups.  Additional limits for the number of streams
+   and the flow controlled data are applied to each group.
+
+   This extension adds another layer of flow control for data sent on
+   streams, by adding a data limit per stream group.  For the number of
+   streams opened, this extension replaces the mechanism described in
+   ([RFC9000]).
+
+   Logically, the flow control mechanisms of QUIC ([RFC9000]) can be
+   regarded as the degenerate case of this extension: A connection that
+   only has a single stream group.
+
+2.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+3.  Using Stream Groups
+
+   This extension doesn't prescribe any specific usage pattern for
+   stream groups.  Applicationsrunning on top of a QUIC connection might
+   check the peer assigns streams to the correct stream groups, based on
+   some application-defined logic.
+
+4.  Negotiating this Extension
+
+   Endpoints advertise their support of the extension described in this
+   document by sending at least one of the following transport
+   parameters (Section 7.4 of [RFC9000]).
+
+   initial_max_stream_groups (0x2a4c1f8e9b6d2c01):  The initial maximum
+      stream group is an integer value that contains the initial value
+      for the maximum stream group.
+
+   initial_max_group_streams_bidi (0x2a4c1f8e9b6d2c02):  The initial
+      maximum bidirectional streams group parameter is an integer value
+      that contains the initial maximum number of bidirectional streams
+      the endpoint that receives this transport parameter is permitted
+      to initiate in a new stream group.  If this parameter is absent or
+      zero, the peer cannot open bidirectional streams until a
+      MAX_GROUP_STREAMS frame is sent.
+
+   initial_max_group_streams_uni (0x2a4c1f8e9b6d2c03):  The initial
+      maximum unidirectional streams group parameter is an integer value
+      that contains the initial maximum number of unidirectional streams
+      the endpoint that receives this transport parameter is permitted
+      to initiate in a new stream group.  If this parameter is absent or
+      zero, the peer cannot open unidirectional streams until a
+      MAX_GROUP_STREAMS frame is sent.
+
+   initial_max_group_data (0x2a4c1f8e9b6d2c04):  The initial maximum
+      data parameter is an integer value that contains the initial value
+      for the maximum amount of data that can be sent on a newly
+      established stream group.  This is equivalent to sending a
+      MAX_GROUP_DATA frame for the stream group immediately after
+      establishment of the stream group.
+
+   Any of these transport parameters enables the use of this extension.
+   The missing transport parameters take a default value of 0.
+
+   An implementation that understands these transport parameters MUST
+   treat the receipt of an empty value or a value that is not a QUIC
+   varint for any of these parameters as a connection error of type
+   TRANSPORT_PARAMETER_ERROR.
+
+   When negotiating this extension, the initial_max_streams_bidi (0x08)
+   and the initial_max_streams_uni (0x09) transport parameters MUST NOT
+   be used.  The receiver MUST treat receipt of any of these parameters
+   as a connection error of type TRANSPORT_PARAMETER_ERROR.
+
+   TODO: define which of these parameters need to be remembered for
+   0-RTT
+
+5.  Limiting the Number of Streams
+
+   QUIC ([RFC9000]) identifies a stream by one number, its stream ID.
+   When using this extension, a stream is identified by the tuple of the
+   stream group and the stream ID.
+
+5.1.  Opening a New Stream Group
+
+   A new stream group is initialized implicitly, by sending a STREAM,
+   RESET_STREAM or STREAMS_BLOCKED frame with a new Stream Group ID.
+   Stream Group IDs are integers, starting at 0 and are incremented by 1
+   for every new stream group.
+
+   Initially, the number of stream groups is limited by the value
+   provided in the initial_max_stream_groups transport parameter.
+   Receiving a MAX_STREAM_GROUP frame updates this value.
+
+   Note that due to packet reordering, MAX_STREAM_GROUP frames might be
+   received out of order.  Endpoints MUST therefore ignore
+   MAX_STREAM_GROUP frames that decrease the Maximum Stream Group value
+   received so far.
+
+   When a peer wishes to initialize a new stream group, but is unable to
+   do so due to the maximum stream group limit set by the peer, it
+   SHOULD send a STREAM_GROUP_BLOCKED frame.
+
+5.2.  Opening New Streams
+
+   Every stream is associated with an existing stream group, or it opens
+   a new stream group (see previous section).
+
+   When an endpoint wishes to open a new stream for an existing stream
+   group, but is unable to do so due the stream group limit, it SHOULD
+   send a STREAMS_BLOCKED frame.
+
+   When receiving a frame that would cause a new stream to be opened,
+   the receiver MUST check if the sender was permitted to open this
+   stream in the respective stream group, and close the connection with
+   a STREAM_LIMIT_ERROR if the peer violated the limit.
+
+6.  Flow Control
+
+6.1.  Sending and Receiving Stream Data
+
+   In addition to the flow control mechanism described in (Section 4.1
+   of [RFC9000]), senders need to respect the stream group flow control.
+   In specific, when sending data on the stream, this means the sender
+   has to check: 1.  The stream flow control window 2.  The stream group
+   flow control window 3.  The connection flow control window
+
+   When receiving a frame that advances the highest offset received on
+   stream, the receiver MUST check that none of the flow control windows
+   was violated.  In case of a violating, it MUST close the connection
+   using a FLOW_CONTROL_ERROR.
+
+7.  Changes to Existing Frames
+
+   When this extension is negotiated, an additional Stream Group varint
+   is added to a number of QUIC frames:
+
+7.1.  STREAM frame
+
+   STREAM Frame {
+     Type (i) = 0x08..0x0f,
+     Stream Group (i),
+     Stream ID (i),
+     [Offset (i)],
+     [Length (i)],
+     Stream Data (..),
+   }
+
+7.2.  RESET_STREAM frame
+
+   RESET_STREAM Frame {
+     Type (i) = 0x04,
+     Stream Group (i),
+     Stream ID (i),
+     Application Protocol Error Code (i),
+     Final Size (i),
+   }
+
+7.3.  STREAMS_BLOCKED frame
+
+   STREAMS_BLOCKED Frame {
+     Type (i) = 0x16..0x17,
+     Stream Group (i),
+     Maximum Streams (i),
+   }
+
+8.  New Frames
+
+   The following new frames are defined.
+
+   TODO: define eligibility for 0-RTT
+
+8.1.  MAX_STREAM_GROUP
+
+   A MAX_STREAM_GROUP frame informs the peer of the maximum stream group
+   that it can create new streams for.
+
+   MAX_STREAM_GROUP Frame {
+     Type (i) = 0x1b37fd9a08c2e500,
+     Maximum Stream Group (i),
+   }
+
+8.2.  MAX_GROUP_DATA
+
+   A MAX_GROUP_DATA frame is used in flow control to inform the peer of
+   the maximum amount of data that can be sent on the stream group as a
+   whole.
+
+   MAX_GROUP_DATA Frame {
+     Type (i) = 0x1b37fd9a08c2e501,
+     Stream Group (i),
+     Maximum Data (i),
+   }
+
+8.3.  GROUP_DATA_BLOCKED
+
+   A sender SHOULD send a GROUP_DATA_BLOCKED frame when it wishes to
+   send data but is unable to do so due to stream group-level flow
+   control.  GROUP_DATA_BLOCKED frames can be used as input to tuning of
+   flow control algorithms; see (Section 4.2 of [RFC9000]).
+
+   GROUP_DATA_BLOCKED Frame {
+     Type (i) = 0x1b37fd9a08c2e520,
+     Stream Group (i),
+     Maximum Data (i),
+   }
+
+8.4.  STREAM_GROUP_BLOCKED
+
+   A sender SHOULD send a STREAM_GROUP_BLOCKED frame when it wishes to
+   open a new stream group, but is unable to do so because the maximum
+   stream group limit set by the peer.
+
+   GROUP_DATA_BLOCKED Frame {
+     Type (i) = 0x1b37fd9a08c2e521,
+     Stream Group (i),
+   }
+
+9.  Security Considerations
+
+   We succeeded at encrypting all the things.  Isn't it wonderful to
+   have a protocol that middleboxes can't mess with?
+
+10.  IANA Considerations
+
+   This document has no IANA actions.
+
+11.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+   [RFC9000]  Iyengar, J., Ed. and M. Thomson, Ed., "QUIC: A UDP-Based
+              Multiplexed and Secure Transport", RFC 9000,
+              DOI 10.17487/RFC9000, May 2021,
+              <https://www.rfc-editor.org/rfc/rfc9000>.
+
+Acknowledgments
+
+   TODO acknowledge.
+
+Author's Address
+
+   Marten Seemann
+   Protocol Labs
+   Email: martenseemann@gmail.com
