@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2025-01-30T00:05:36.899132+00:00",
+  "timestamp": "2025-03-25T00:06:11.207434+00:00",
   "repo": "marten-seemann/draft-seemann-quic-stream-groups",
   "labels": [
     {
@@ -50,5 +50,34 @@
     }
   ],
   "issues": [],
-  "pulls": []
+  "pulls": [
+    {
+      "number": 1,
+      "id": "PR_kwDOJR5g5c6PwC62",
+      "title": "run make update-ci",
+      "url": "https://github.com/marten-seemann/draft-seemann-quic-stream-groups/pull/1",
+      "state": "MERGED",
+      "author": "marten-seemann",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2025-03-23T05:39:06Z",
+      "updatedAt": "2025-03-23T05:51:04Z",
+      "baseRepository": "marten-seemann/draft-seemann-quic-stream-groups",
+      "baseRefName": "main",
+      "baseRefOid": "9eaa751611f89c922a66c763d12b2831a66f257e",
+      "headRepository": "marten-seemann/draft-seemann-quic-stream-groups",
+      "headRefName": "update-ci",
+      "headRefOid": "c33e57d4f2f6e24c6af04088608648f409c20241",
+      "closedAt": "2025-03-23T05:51:04Z",
+      "mergedAt": "2025-03-23T05:51:04Z",
+      "mergedBy": "marten-seemann",
+      "mergeCommit": {
+        "oid": "7836ce80b8316be23fe1235b3d04cb3a11085d78"
+      },
+      "comments": [],
+      "reviews": []
+    }
+  ]
 }
